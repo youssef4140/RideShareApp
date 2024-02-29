@@ -5,6 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Trip;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Events\TripAccepted;
+use App\Events\TripCanceledByDriver;
+use App\Events\TripCanceledByUser;
+use App\Events\TripCompleted;
+use App\Events\TripLocationUpdated;
+use App\Events\TripStarted;
+use App\Models\Driver;
 
 class TripController extends Controller
 {
@@ -21,14 +28,17 @@ class TripController extends Controller
         ]);
 
         try {
+        $user = $request->user();
         $trip = Trip::create([
-            'user_id'=>$request->user()->id,
+            'user_id'=>$user->id,
             'origin'=>$request->origin,
             'destination'=>$request->destination,
             'destination_name'=>$request->destination_name
         ]);
         $trip->load('user');
 
+        TripAccepted::dispatch($trip,$user);
+        
         return response()->json([
             "trip"=>$trip
         ]);
@@ -52,6 +62,7 @@ class TripController extends Controller
             if($trip->status != "pending") return response()->json(["You can't cancel an accepted trip"]);
             $deletion = $trip->forceDelete();
 
+            TripCanceledByUser::dispatch($trip);
             return response()->json([
                 "id"=>$trip->id,
                 "deletion"=>$deletion
@@ -70,6 +81,10 @@ class TripController extends Controller
 
     public function accept(Request $request,Trip $trip)
     {
+        $driver_id = $request->user()->id;
+        if($trip->user_id == $driver_id) return response()->json(["message"=>"you can't accept your own ride!"]);
+        $existingTrip = Trip::where('driver_id',$driver_id)->where('status','accepted')->first();
+        if($existingTrip) return response()->json(["message"=>"you can't accept multiple rides"]);
         try {
             $request->validate([
                 'driver_location' => ['required', 'array'],
@@ -78,13 +93,18 @@ class TripController extends Controller
             ]);
 
             $trip->update([
-                'driver_id'=>$request->user()->id,
+                'driver_id'=>$driver_id,
                 'driver_location'=>$request->driver_location,
                 'status'=>'accepted'
             ]);
-            $trip->load('user')->load('driver');
+            $driver = Driver::where('user_id',$driver_id)->first()->load('user');
+            $trip->load('user');
+            
+            TripAccepted::dispatch($trip,$trip->user);
 
-            return response()->json(["trip"=>$trip],200);
+
+            return response()->json(["trip"=>$trip,
+                                    "driver"=>$driver],200);
         } catch (\Exception $e){
             return response()->json(['error' => $e->getMessage()], 500);
 
@@ -93,50 +113,58 @@ class TripController extends Controller
 
     public function driverCancel(Trip $trip)
     {
+        $driver_id = Auth::id();
 
-        if(!($trip->driver_id == Auth::id())) return response()->json(["message"=>"Unauthenticated"]);
+        if(!($trip->driver_id == $driver_id)) return response()->json(["message"=>"Unauthenticated"]);
         $trip->update([
             "driver_location"=>null,
             "driver_id" => null,
             "status"=>'pending'
         ]);
-        $trip->load('user')->load('driver');
+        $driver = Driver::where('user_id',$driver_id)->first()->load('user');
+        $trip->load('user');
 
-        return response()->json([
-            "trip"=>$trip
-        ]);
+        TripCanceledByDriver::dispatch($trip,$trip->user->id);
+        return response()->json(["trip"=>$trip,
+        "driver"=>$driver],200);
     }
 
 
     public function start(Trip $trip)
     {
-        if(!($trip->driver_id == Auth::id())) return response()->json(["message"=>"Unauthenticated"]);
+        $driver_id=Auth::id();
+        if(!($trip->driver_id == $driver_id)) return response()->json(["message"=>"Unauthenticated"]);
         $trip->update([
             "status"=>'started'
         ]);
-        $trip->load('user')->load('driver');
+        $driver = Driver::where('user_id',$driver_id)->first()->load('user');
+        $trip->load('user');
 
-        return response()->json([
-            "trip"=>$trip
-        ]);
+        TripStarted::dispatch($trip,$trip->user->id);
+        return response()->json(["trip"=>$trip,
+        "driver"=>$driver],200);
     }
 
     public function complete(Trip $trip)
     {
-        if(!($trip->driver_id == Auth::id())) return response()->json(["message"=>"Unauthenticated"]);
+        $driver_id = Auth::id();
+        if(!($trip->driver_id == $driver_id )) return response()->json(["message"=>"Unauthenticated"]);
         $trip->update([
             "status"=>'completed'
         ]);
-        $trip->load('user')->load('driver');
 
-        return response()->json([
-            "trip"=>$trip
-        ]);
+        $driver = Driver::where('user_id',$driver_id)->first()->load('user');
+        $trip->load('user');
+
+        TripCompleted::dispatch($trip,$trip->user->id);
+        return response()->json(["trip"=>$trip,
+        "driver"=>$driver],200);
     }
 
     public function location(Request $request,Trip $trip)
     {
-        if(!($trip->driver_id == Auth::id())) return response()->json(["message"=>"Unauthenticated"]);
+        $driver_id = Auth::id();
+        if(!($trip->driver_id == $driver_id)) return response()->json(["message"=>"Unauthenticated"]);
 
         try {
             $request->validate([
@@ -150,10 +178,14 @@ class TripController extends Controller
                 'driver_location'=>$request->driver_location,
                 'status'=>'accepted'
             ]);
-            $trip->load('user')->load('driver');
 
+            $driver = Driver::where('user_id',$driver_id)->first()->load('user');
+            $trip->load('user');
+    
+            TripLocationUpdated::dispatch($trip,$trip->user->id);
+            return response()->json(["trip"=>$trip,
+            "driver"=>$driver],200);
 
-            return response()->json(["trip"=>$trip],200);
         } catch (\Exception $e){
             return response()->json(['error' => $e->getMessage()], 500);
 

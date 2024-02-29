@@ -46,7 +46,13 @@ class AuthenticatedUserController extends Controller
         if(!$user) return response()->json([
             "message"=>"This user is not registred"
         ],404);
-        $user->notify(new ForgotPassword());
+
+        $loginCode = 111111;
+
+        $user->update([
+            'VerificationCode' => $loginCode
+        ]);
+        // $user->notify(new ForgotPassword());
 
         return response()->json([
             "message"=>'Please check your phone for password retrieval code'

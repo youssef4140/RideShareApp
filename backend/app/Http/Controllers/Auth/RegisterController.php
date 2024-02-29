@@ -32,7 +32,12 @@ class RegisterController extends Controller
         ]);
 
         // send verification code to user
-        $user->notify(new UserVerification());
+        $loginCode = 111111;
+
+        $user->update([
+            'VerificationCode' => $loginCode
+        ]);
+        // $user->notify(new UserVerification());
         // return 
         return response()->json([
             'user'=>$user,
