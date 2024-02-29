@@ -44,22 +44,21 @@ Route::group(['middleware' => 'auth:sanctum'], function (){
         Route::prefix('trip')->group(function(){
 
             Route::post('/',[TripController::class,'book']);
-            Route::post('/cancel/{trip}',[TripController::class,'book']);
-            Route::get('/show/{trip}',[TripController::class,'show']);
+            Route::delete('/cancel/user/{trip}',[TripController::class,'userCancel']);
 
 
         });
     });
 
+    Route::get('trip/show/{trip}',[TripController::class,'show']);
     
     Route::group(['middleware'=>'driver'], function(){
 
         Route::prefix('trip')->group(function(){
 
-            Route::get('/show/{trip}',[TripController::class,'show']);
             Route::get('/all',[TripController::class,'all']);
-            Route::post('/cancel/{trip}',[TripController::class,'book']);
             Route::post('/accept/{trip}',[TripController::class,'accept']);
+            Route::patch('/cancel/driver/{trip}',[TripController::class,'driverCancel']);
             Route::post('/start/{trip}',[TripController::class,'start']);
             Route::post('/complete{trip}',[TripController::class,'complete']);
             Route::post('/location{trip}',[TripController::class,'location']);

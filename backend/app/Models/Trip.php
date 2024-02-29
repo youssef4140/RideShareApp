@@ -18,7 +18,8 @@ class Trip extends Model
         'destination' => 'array',
         'driver_location'=>'array',
         'is_started'=>'boolean',
-        'is_complete'=>'boolean'
+        'is_complete'=>'boolean',
+        'is_accepted'=>'boolean',
     ];
 
     public function driver()
