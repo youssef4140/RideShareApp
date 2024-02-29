@@ -17,13 +17,14 @@ class TripAccepted
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $trip;
-    private $user;
+    private $id;
     /**
      * Create a new event instance.
      */
-    public function __construct(Trip $trip, User $user)
+    public function __construct(Trip $trip, $id)
     {
         $this->trip = $trip;
+        $this->id = $id;
     }
 
     /**
@@ -34,7 +35,7 @@ class TripAccepted
     public function broadcastOn(): array
     {
         return [
-            new channel('passenger_'.$this->trip->id),
+            new channel('passenger_'.$this->id),
         ];
     }
 }

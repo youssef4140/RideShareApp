@@ -6,6 +6,7 @@ use App\Models\Trip;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Events\TripAccepted;
+use App\Events\TripBooked;
 use App\Events\TripCanceledByDriver;
 use App\Events\TripCanceledByUser;
 use App\Events\TripCompleted;
@@ -17,7 +18,11 @@ class TripController extends Controller
 {
     public function book(Request $request)
     {
-        $request->validate([
+        $tripExists = Trip::where('user_id', $request->user()->id)
+        ->where('status', '!=', 'completed')
+        ->exists();
+        if($tripExists) return response()->json(["you can't book multiple drives at once"]);
+$request->validate([
             'origin' => ['required', 'array'],
             'origin.lat' => ['required', 'numeric'],
             'origin.lng' => ['required', 'numeric'],
@@ -37,7 +42,7 @@ class TripController extends Controller
         ]);
         $trip->load('user');
 
-        TripAccepted::dispatch($trip,$user);
+        TripBooked::dispatch();
         
         return response()->json([
             "trip"=>$trip
@@ -62,7 +67,7 @@ class TripController extends Controller
             if($trip->status != "pending") return response()->json(["You can't cancel an accepted trip"]);
             $deletion = $trip->forceDelete();
 
-            TripCanceledByUser::dispatch($trip);
+            TripCanceledByUser::dispatch();
             return response()->json([
                 "id"=>$trip->id,
                 "deletion"=>$deletion
@@ -100,7 +105,7 @@ class TripController extends Controller
             $driver = Driver::where('user_id',$driver_id)->first()->load('user');
             $trip->load('user');
             
-            TripAccepted::dispatch($trip,$trip->user);
+            TripAccepted::dispatch($trip,$trip->user_id);
 
 
             return response()->json(["trip"=>$trip,
@@ -124,7 +129,7 @@ class TripController extends Controller
         $driver = Driver::where('user_id',$driver_id)->first()->load('user');
         $trip->load('user');
 
-        TripCanceledByDriver::dispatch($trip,$trip->user->id);
+        TripCanceledByDriver::dispatch($trip,$trip->user_id);
         return response()->json(["trip"=>$trip,
         "driver"=>$driver],200);
     }
@@ -140,7 +145,7 @@ class TripController extends Controller
         $driver = Driver::where('user_id',$driver_id)->first()->load('user');
         $trip->load('user');
 
-        TripStarted::dispatch($trip,$trip->user->id);
+        TripStarted::dispatch($trip,$trip->user_id);
         return response()->json(["trip"=>$trip,
         "driver"=>$driver],200);
     }
@@ -156,7 +161,7 @@ class TripController extends Controller
         $driver = Driver::where('user_id',$driver_id)->first()->load('user');
         $trip->load('user');
 
-        TripCompleted::dispatch($trip,$trip->user->id);
+        TripCompleted::dispatch($trip,$trip->user_id);
         return response()->json(["trip"=>$trip,
         "driver"=>$driver],200);
     }
@@ -182,7 +187,7 @@ class TripController extends Controller
             $driver = Driver::where('user_id',$driver_id)->first()->load('user');
             $trip->load('user');
     
-            TripLocationUpdated::dispatch($trip,$trip->user->id);
+            TripLocationUpdated::dispatch($trip,$trip->user_id);
             return response()->json(["trip"=>$trip,
             "driver"=>$driver],200);
 

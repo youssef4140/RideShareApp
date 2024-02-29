@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Models\Trip;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
@@ -14,12 +15,16 @@ class TripCanceledByDriver
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+   
+    public $trip;
+    private $id;
     /**
      * Create a new event instance.
      */
-    public function __construct()
+    public function __construct(Trip $trip, $id)
     {
-        //
+        $this->trip = $trip;
+        $this->id = $id;
     }
 
     /**
@@ -30,7 +35,7 @@ class TripCanceledByDriver
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('channel-name'),
+            new channel('passenger_'.$this->id),
         ];
     }
 }
