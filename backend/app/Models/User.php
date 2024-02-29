@@ -22,7 +22,7 @@ class User extends Authenticatable
         'phone',
         'password',
         'VerificationCode',
-        'isVerified'
+        'isVerified',
     ];
 
     /**
@@ -34,6 +34,7 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'VerificationCode',
+        'passwordRetrievalCode'
     ];
 
     /**

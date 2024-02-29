@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -23,20 +23,20 @@ class RegisterController extends Controller
             'password'=> ['required','confirmed',Rules\Password::defaults()]
         ]);
 
-        // create verificationCode
-
+        //create user
         $user = User::create([
             'name'=>$request->name,
             'phone'=>$request->phone,
             'password'=>Hash::make($request->password),
+            'isVerified'=>false,
         ]);
 
         // send verification code to user
         $user->notify(new UserVerification());
-
         // return 
         return response()->json([
             'user'=>$user,
+            "token" => $user->createToken($user->id)->plainTextToken,
             'message'=>'Please check your phone for a verification code'
         ]);
     } catch (\Exception $e) {
@@ -72,7 +72,6 @@ class RegisterController extends Controller
         //return user and token
         return response()->json([
             "user" => $user,
-            "token" => $user->createToken($request->VerificationCode)->plainTextToken
         ], 200);
     } catch (\Exception $e) {
         // Handle unexpected errors

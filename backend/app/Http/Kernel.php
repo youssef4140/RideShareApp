@@ -44,6 +44,14 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
+
+        'user' => [
+            \App\Http\Middleware\IsVerified::class,
+        ],
+
+        'driver' => [
+            \App\Http\Middleware\IsDriver::class,
+        ],
     ];
 
     /**
