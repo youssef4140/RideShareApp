@@ -36,8 +36,13 @@ class UserVerification extends Notification
      */
     public function toTwilio($notifiable)
     {
+        $loginCode = rand(111111,999999);
+
+        $notifiable->update([
+            'VerificationCode' => $loginCode
+        ]);
         return (new TwilioSmsMessage())
-            ->content("Your {$notifiable->service} account was approved!");
+            ->content('Your notUber login code is '.$loginCode." don't share this with anyone!");
     }
 
     /**

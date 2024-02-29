@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Notifications\UserVerification;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules;
 use Illuminate\Http\JsonResponse;
@@ -11,9 +12,10 @@ use Illuminate\Support\Facades\Hash;
 
 class RegisterController extends Controller
 {
-    public function register(Request $request):JsonResponse
+    public function submit(Request $request):JsonResponse
     {
 
+        try{
         //validate request
         $request->validate([
             'name'=>['required','string','max:255'],
@@ -22,21 +24,60 @@ class RegisterController extends Controller
         ]);
 
         // create verificationCode
-        $verificationCode = rand(111111,999999);
 
         $user = User::create([
             'name'=>$request->name,
             'phone'=>$request->phone,
             'password'=>Hash::make($request->password),
-            'VerificationCode' => $verificationCode
         ]);
 
+        // send verification code to user
+        $user->notify(new UserVerification());
 
+        // return 
         return response()->json([
             'user'=>$user,
             'message'=>'Please check your phone for a verification code'
         ]);
+    } catch (\Exception $e) {
+        // Handle unexpected errors
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
         
+    }
+
+    public function verify(Request $request):JsonResponse
+    {
+        try {
+            //validate
+        $request->validate([
+            'phone'=>['required','regex:/^\+?[0-9\s]+$/'],
+            'VerificationCode'=>'required'
+        ]);
+
+        //find user
+        $user = User::where('phone',$request->phone)
+                    ->where('VerificationCode',$request->VerificationCode)
+                    ->first();
+
+        // handling if no user exists
+        if(!$user) return response()->json(["message"=>'Incorrect Verification Code!'],404);
+
+        // updating user 
+        $user->update([
+            'isVerified'=>true,
+            'VerificationCode'=>null
+        ]);
+
+        //return user and token
+        return response()->json([
+            "user" => $user,
+            "token" => $user->createToken($request->VerificationCode)->plainTextToken
+        ], 200);
+    } catch (\Exception $e) {
+        // Handle unexpected errors
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
     }
 
 }
