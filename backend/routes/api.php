@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\Auth\AuthenticatedUserController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\DriverController;
+use App\Http\Controllers\TripController;
+use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -32,18 +35,37 @@ Route::group(['middleware' => 'auth:sanctum'], function (){
     });
     Route::post('change_password', [AuthenticatedUserController::class,'changePassword']);
 
+
+
     Route::group(['middleware'=>'user'], function(){
 
-        Route::get('test',function(Request $request){
-            return 'test';
+        Route::post('driver',[DriverController::class,'becomeDriver']);
+
+        Route::prefix('trip')->group(function(){
+
+            Route::post('/',[TripController::class,'book']);
+            Route::post('/cancel/{trip}',[TripController::class,'book']);
+            Route::get('/show/{trip}',[TripController::class,'show']);
+
+
         });
     });
 
     
     Route::group(['middleware'=>'driver'], function(){
 
-        Route::get('test',function(Request $request){
-            return 'test';
+        Route::prefix('trip')->group(function(){
+
+            Route::get('/show/{trip}',[TripController::class,'show']);
+            Route::get('/all',[TripController::class,'all']);
+            Route::post('/cancel/{trip}',[TripController::class,'book']);
+            Route::post('/accept/{trip}',[TripController::class,'accept']);
+            Route::post('/start/{trip}',[TripController::class,'start']);
+            Route::post('/complete{trip}',[TripController::class,'complete']);
+            Route::post('/location{trip}',[TripController::class,'location']);
+
         });
+
+
     });
 });
