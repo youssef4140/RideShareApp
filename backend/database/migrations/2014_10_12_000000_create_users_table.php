@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('password');
             $table->boolean('isVerified')->default(false);
             $table->boolean('isDriver')->default(false);
+            $table->string('VerificationCode')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
